@@ -55,7 +55,10 @@ export default function Main() {
     
   }, [layout]);
 
-  
+  function onResize(cb){
+    //auto sizer 넣어야겠네 ㅋㅋ
+    console.log(cb)
+  }
 
   return (
     <div style={{}}>
@@ -72,6 +75,7 @@ export default function Main() {
         // maxRows={4}
         // autoSize={false}
         // maxRows={2}
+        onResizeStop={onResize}
       >
         {layout.map((v, i) => {
           return (
@@ -106,6 +110,9 @@ function init() {
   );
 
   renderer = new THREE.WebGLRenderer();
+  // 망함 각각마다 renderer 사이즈 다 다르게 해야되잖아 ....
+  // 일단 쉬운 방법은 1 , 2, 4 일때의 고정이 있다 .... 4가지가 다 모두 사이즈 같기에 ...
+  // 오버 테크놀로지 일까 ...
   renderer.setSize(400, 400);
 
   let geometry = new THREE.BoxGeometry();
