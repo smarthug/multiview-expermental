@@ -6,7 +6,7 @@ import "./styles.css";
 import _ from "lodash";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-//import GLTFLoader  from "./GLTFLoader";
+import { AutoSizer } from "react-virtualized";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -24,8 +24,13 @@ const removeStyle = {
   cursor: "pointer",
 };
 
+// 결국 종합적인 모든걸 관리하는
 let canvasRefArray = React.createRef();
 canvasRefArray.current = [];
+
+let canvasSizeArray = React.createRef();
+canvasSizeArray.current = [];
+
 let numOfCanvas = 1;
 let scene, camera, renderer, model, light, hemiLight;
 
@@ -80,7 +85,21 @@ export default function Main() {
         {layout.map((v, i) => {
           return (
             <div key={v.i} data-grid={v}>
-              {v.i}
+              <AutoSizer>
+                {({ height, width }) => {
+                  if (renderer) {
+                    //renderer.setSize(width, height);
+                    canvasSizeArray.current[i] = {width, height}
+                  }
+                  return (
+                    <canvas
+                      width={width}
+                      height={height}
+                      ref={(ref) => (canvasRefArray.current[i] = ref)}
+                    ></canvas>
+                  );
+                }}
+              </AutoSizer>
               <span
                 className="remove"
                 style={removeStyle}
@@ -88,11 +107,7 @@ export default function Main() {
               >
                 x
               </span>
-              <canvas
-                width={400}
-                height={400}
-                ref={(ref) => (canvasRefArray.current[i] = ref)}
-              ></canvas>
+              {v.i}
             </div>
           );
         })}
@@ -167,16 +182,20 @@ function animate() {
   requestAnimationFrame(animate);
   // one renderer , scene , multiple camera ....
   // canvasref array 에
-  renderer.render(scene, camera);
+  
 
   canvasRefArray.current.map((v, i) => {
     //v.get
     // renderer.domElement 를 그려주기 .
     // 이게 애니메이트에서 돌아가야할듯 ...
     // renderer .set size
-    console.log(v)
-    if(v){
-
+    //console.log(v);
+    if (v && canvasSizeArray.current[i]) {
+      //console.log(canvasSizeArray.current[i])
+      camera.aspect = canvasSizeArray.current[i].width / canvasSizeArray.current[i].height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(canvasSizeArray.current[i].width, canvasSizeArray.current[i].height);
+      renderer.render(scene, camera);
       v.getContext("2d").drawImage(renderer.domElement, 0, 0);
     }
     return null;

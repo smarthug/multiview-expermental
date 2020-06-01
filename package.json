@@ -12,6 +12,7 @@
     "react-grid-layout": "^0.18.3",
     "react-scripts": "3.4.1",
     "react-three-fiber": "^4.2.7",
+    "react-virtualized": "^9.21.2",
     "three": "^0.116.1",
     "three.js": "^0.77.1"
   },
