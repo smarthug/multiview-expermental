@@ -8,6 +8,11 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { AutoSizer } from "react-virtualized";
 
+import CameraControls from "camera-controls";
+CameraControls.install({ THREE: THREE });
+
+const clock = new THREE.Clock();
+
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const dLayout = [
@@ -32,7 +37,7 @@ let canvasSizeArray = React.createRef();
 canvasSizeArray.current = [];
 
 let numOfCanvas = 1;
-let scene, camera, renderer, model, light, hemiLight;
+let scene, camera, renderer, model, light, hemiLight, cameraControls;
 
 export default function Main() {
   const [layout, setLayout] = useState(dLayout);
@@ -54,7 +59,11 @@ export default function Main() {
 
   useEffect(() => {
     init();
+    
+    
+    cameraControls = new CameraControls(camera, canvasRefArray.current[0]);
     animate();
+
   }, []);
   useEffect(() => {
     console.log(canvasRefArray.current);
@@ -89,7 +98,7 @@ export default function Main() {
                 {({ height, width }) => {
                   if (renderer) {
                     //renderer.setSize(width, height);
-                    canvasSizeArray.current[i] = {width, height}
+                    canvasSizeArray.current[i] = { width, height };
                   }
                   return (
                     <canvas
@@ -129,6 +138,9 @@ function init() {
     5000
   );
   camera.position.set(0, 25, 125);
+
+  // 이건 add 나 , init 시에 있어야겠다 ...
+  // cameraControls = new CameraControls(camera, renderer.domElement);
 
   //renderer = new THREE.WebGLRenderer();
   // 망함 각각마다 renderer 사이즈 다 다르게 해야되잖아 ....
@@ -182,7 +194,11 @@ function animate() {
   requestAnimationFrame(animate);
   // one renderer , scene , multiple camera ....
   // canvasref array 에
-  
+
+  // snip
+  const delta = clock.getDelta();
+  //const hasControlsUpdated = cameraControls.update( delta );
+  cameraControls.update(delta);
 
   canvasRefArray.current.map((v, i) => {
     //v.get
@@ -192,9 +208,13 @@ function animate() {
     //console.log(v);
     if (v && canvasSizeArray.current[i]) {
       //console.log(canvasSizeArray.current[i])
-      camera.aspect = canvasSizeArray.current[i].width / canvasSizeArray.current[i].height;
+      camera.aspect =
+        canvasSizeArray.current[i].width / canvasSizeArray.current[i].height;
       camera.updateProjectionMatrix();
-      renderer.setSize(canvasSizeArray.current[i].width, canvasSizeArray.current[i].height);
+      renderer.setSize(
+        canvasSizeArray.current[i].width,
+        canvasSizeArray.current[i].height
+      );
       renderer.render(scene, camera);
       v.getContext("2d").drawImage(renderer.domElement, 0, 0);
     }
