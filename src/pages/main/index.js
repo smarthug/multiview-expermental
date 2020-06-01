@@ -5,6 +5,8 @@ import "react-resizable/css/styles.css";
 import "./styles.css";
 import _ from "lodash";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+//import GLTFLoader  from "./GLTFLoader";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -25,7 +27,7 @@ const removeStyle = {
 let canvasRefArray = React.createRef();
 canvasRefArray.current = [];
 let numOfCanvas = 1;
-let scene, camera, renderer;
+let scene, camera, renderer, model, light, hemiLight;
 
 export default function Main() {
   const [layout, setLayout] = useState(dLayout);
@@ -51,13 +53,11 @@ export default function Main() {
   }, []);
   useEffect(() => {
     console.log(canvasRefArray.current);
-
-    
   }, [layout]);
 
-  function onResize(cb){
+  function onResize(cb) {
     //auto sizer 넣어야겠네 ㅋㅋ
-    console.log(cb)
+    console.log(cb);
   }
 
   return (
@@ -88,7 +88,11 @@ export default function Main() {
               >
                 x
               </span>
-              <canvas width={400} height={400} ref={(ref) => (canvasRefArray.current[i] = ref)}></canvas>
+              <canvas
+                width={400}
+                height={400}
+                ref={(ref) => (canvasRefArray.current[i] = ref)}
+              ></canvas>
             </div>
           );
         })}
@@ -102,36 +106,79 @@ export default function Main() {
 
 function init() {
   scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xdddddd);
   camera = new THREE.PerspectiveCamera(
-    75,
+    60,
     window.innerWidth / window.innerHeight,
-    0.1,
-    1000
+    1,
+    5000
   );
+  camera.position.set(0, 25, 125);
 
-  renderer = new THREE.WebGLRenderer();
+  //renderer = new THREE.WebGLRenderer();
   // 망함 각각마다 renderer 사이즈 다 다르게 해야되잖아 ....
   // 일단 쉬운 방법은 1 , 2, 4 일때의 고정이 있다 .... 4가지가 다 모두 사이즈 같기에 ...
   // 오버 테크놀로지 일까 ...
+
+  renderer = new THREE.WebGLRenderer();
+  renderer.toneMapping = THREE.ReinhardToneMapping;
+  renderer.toneMappingExposure = 2.3;
+  renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setSize(400, 400);
+  renderer.shadowMap.enabled = true;
 
   let geometry = new THREE.BoxGeometry();
   let material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
   let cube = new THREE.Mesh(geometry, material);
   scene.add(cube);
 
-  camera.position.z = 5;
+  scene.add(new THREE.AxesHelper(500));
+
+  //camera.position.z = 105;
+
+  light = new THREE.SpotLight(0xffa95c, 4);
+  light.position.set(-50, 50, 50);
+  light.castShadow = true;
+  light.shadow.bias = -0.0001;
+  light.shadow.mapSize.width = 1024 * 4;
+  light.shadow.mapSize.height = 1024 * 4;
+  scene.add(light);
+
+  hemiLight = new THREE.HemisphereLight(0xffeeb1, 0x080820, 4);
+  scene.add(hemiLight);
+
+  let loader = new GLTFLoader();
+  loader.load("./model/scene.gltf", (result) => {
+    console.log(result);
+    model = result.scene.children[0];
+    model.position.set(0, -5, -25);
+    model.traverse((n) => {
+      if (n.isMesh) {
+        n.castShadow = true;
+        n.receiveShadow = true;
+        if (n.material.map) n.material.map.anisotropy = 1;
+      }
+    });
+    scene.add(model);
+  });
 }
 
 function animate() {
   requestAnimationFrame(animate);
+  // one renderer , scene , multiple camera ....
+  // canvasref array 에
   renderer.render(scene, camera);
 
   canvasRefArray.current.map((v, i) => {
     //v.get
     // renderer.domElement 를 그려주기 .
     // 이게 애니메이트에서 돌아가야할듯 ...
-    v.getContext("2d").drawImage(renderer.domElement, 0,0)
+    // renderer .set size
+    console.log(v)
+    if(v){
+
+      v.getContext("2d").drawImage(renderer.domElement, 0, 0);
+    }
     return null;
   });
 }
