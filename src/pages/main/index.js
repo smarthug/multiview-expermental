@@ -29,7 +29,11 @@ const removeStyle = {
   cursor: "pointer",
 };
 
-// 결국 종합적인 모든걸 관리하는
+// 결국 종합적인 모든걸 관리하는 객체 array ...
+//let test =  {[numOfCanvas]:{canvasRef: 3 ,canvasSize: {width: 3, height: 43}, camera:4, control:43}}
+let theGraphicArray = React.createRef();
+theGraphicArray.current = [];
+
 let canvasRefArray = React.createRef();
 canvasRefArray.current = [];
 
@@ -43,7 +47,7 @@ let controlArray = React.createRef();
 controlArray.current = [];
 
 let numOfCanvas = 0;
-let scene, camera, renderer, model, light, hemiLight, cameraControls;
+let scene, renderer, model, light, hemiLight;
 
 // let isDraggable = false;
 
@@ -59,55 +63,57 @@ export default function Main() {
     console.log(layout);
   }
 
-  function ControlMaker() {}
+  // function ControlMaker() {}
 
   function Remove(i) {
     console.log("removef");
     console.log(i);
     //console.log(el.target.value)
     numOfCanvas--;
+    // 하나로 묶자...
+    // 이제 i 라는 아이디를 지우는 방식으로 ... 
+    canvasRefArray.current.splice(i);
+    canvasSizeArray.current.splice(i);
+    cameraArray.current.splice(i);
+    controlArray.current.splice(i);
     setLayout(_.reject(layout, { i: i }));
   }
 
   function onDragChange(e) {
-    //console.log(e.target)
-    // isDraggable = !isDraggable;
-    // console.log(isDraggable);
-    // console.log(gridLayoutRef.current);
-    // gridLayoutRef.current.props.isDraggable = isDraggable;
     setIsDraggable(!isDraggable);
   }
 
   useEffect(() => {
     init();
 
-    controlArray.current[0] = new CameraControls(
-      camera,
-      canvasRefArray.current[0]
-    );
     animate();
   }, []);
 
   useEffect(() => {
-    console.log(canvasRefArray.current);
-    if(numOfCanvas>0){
+    let tmpCam = new THREE.PerspectiveCamera(
+      60,
+      window.innerWidth / window.innerHeight,
+      1,
+      5000
+    );
+    tmpCam.position.set(0, 25, 125);
+    // numOfCanvas 쓰는게 문제일려나 ....
+    cameraArray.current[numOfCanvas] = tmpCam;
 
-      // 여기서 넣어주어함 컨트롤러 작업 ....  ...
-      // _ lodash filter 등을 사용해서 ? 새로운 것만 ?
-      let tmpCam = new THREE.PerspectiveCamera(
-        60,
-        window.innerWidth / window.innerHeight,
-        1,
-        5000
-      );
-      tmpCam.position.set(0, 25, 125);
-      cameraArray.current[numOfCanvas] = tmpCam;
-      
-      controlArray.current[numOfCanvas] = new CameraControls(
-        tmpCam,
-        canvasRefArray.current[numOfCanvas]
-      );
-    }
+    controlArray.current[numOfCanvas] = new CameraControls(
+      tmpCam,
+      canvasRefArray.current[numOfCanvas]
+    );
+    // 문제 구나 .....
+    // cameraArray.current.push(tmpCam);
+
+    // controlArray.current[numOfCanvas] = new CameraControls(
+    //   tmpCam,
+    //   canvasRefArray.current[numOfCanvas]
+    // );
+    // 배열이 아니라 오브젝트로 가야되나 ????
+    // 오브젝트로 가자 ....
+    // 순서는 중요치 않다 , 페어로 묶여만 있다면 .. 
   }, [layout]);
 
   return (
@@ -166,35 +172,15 @@ export default function Main() {
   );
 }
 
-// autosizer 도 넣어줘야 겠네 ....
-// 일단 r3f 를 안넣고 만들자 .... 귀찮아 죽겠다 ...
-
 function init() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xdddddd);
-  camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    1,
-    5000
-  );
-  camera.position.set(0, 25, 125);
-
-  cameraArray.current[0] = camera
-
-  // 이건 add 나 , init 시에 있어야겠다 ...
-  // cameraControls = new CameraControls(camera, renderer.domElement);
-
-  //renderer = new THREE.WebGLRenderer();
-  // 망함 각각마다 renderer 사이즈 다 다르게 해야되잖아 ....
-  // 일단 쉬운 방법은 1 , 2, 4 일때의 고정이 있다 .... 4가지가 다 모두 사이즈 같기에 ...
-  // 오버 테크놀로지 일까 ...
 
   renderer = new THREE.WebGLRenderer();
   renderer.toneMapping = THREE.ReinhardToneMapping;
   renderer.toneMappingExposure = 2.3;
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setSize(400, 400);
+  // renderer.setSize(window.innerWidth, window.innerHeight);
+  // renderer.setSize(400, 400);
   renderer.shadowMap.enabled = true;
 
   let geometry = new THREE.BoxGeometry();
@@ -203,8 +189,6 @@ function init() {
   scene.add(cube);
 
   scene.add(new THREE.AxesHelper(500));
-
-  //camera.position.z = 105;
 
   light = new THREE.SpotLight(0xffa95c, 4);
   light.position.set(-50, 50, 50);
@@ -233,34 +217,37 @@ function init() {
   });
 }
 
+
+
+// 핵심 ... 
 function animate() {
   requestAnimationFrame(animate);
-  // one renderer , scene , multiple camera ....
-  // canvasref array 에
 
   // snip
   const delta = clock.getDelta();
-  //const hasControlsUpdated = cameraControls.update( delta );
-  //cameraControls.update(delta);
 
   canvasRefArray.current.map((v, i) => {
-    //v.get
-    // renderer.domElement 를 그려주기 .
-    // 이게 애니메이트에서 돌아가야할듯 ...
-    // renderer .set size
-    //console.log(v);
-    if (v && canvasSizeArray.current[i] &&cameraArray.current[i] ) {
-      const hasControlsUpdated = controlArray.current[i].update(delta);
-      //console.log(canvasSizeArray.current[i])
-      if(hasControlsUpdated){
+    if (v && canvasSizeArray.current[i] && cameraArray.current[i]) {
+      // 최적화기법
+      // const hasControlsUpdated = controlArray.current[i].update(delta);
 
-        let tmpSize = canvasSizeArray.current[i];
-        cameraArray.current[i].aspect = tmpSize.width / tmpSize.height;
-        cameraArray.current[i].updateProjectionMatrix();
-        renderer.setSize(tmpSize.width, tmpSize.height);
-        renderer.render(scene, cameraArray.current[i]);
-        v.getContext("2d").drawImage(renderer.domElement, 0, 0);
-      }
+      // if (hasControlsUpdated) {
+      //   let tmpSize = canvasSizeArray.current[i];
+      //   cameraArray.current[i].aspect = tmpSize.width / tmpSize.height;
+      //   cameraArray.current[i].updateProjectionMatrix();
+      //   renderer.setSize(tmpSize.width, tmpSize.height);
+      //   renderer.render(scene, cameraArray.current[i]);
+      //   v.getContext("2d").drawImage(renderer.domElement, 0, 0);
+      // }
+
+      controlArray.current[i].update(delta);
+
+      let tmpSize = canvasSizeArray.current[i];
+      cameraArray.current[i].aspect = tmpSize.width / tmpSize.height;
+      cameraArray.current[i].updateProjectionMatrix();
+      renderer.setSize(tmpSize.width, tmpSize.height);
+      renderer.render(scene, cameraArray.current[i]);
+      v.getContext("2d").drawImage(renderer.domElement, 0, 0);
     }
     return null;
   });
