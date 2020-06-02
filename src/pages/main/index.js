@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -39,13 +39,17 @@ canvasSizeArray.current = [];
 let numOfCanvas = 1;
 let scene, camera, renderer, model, light, hemiLight, cameraControls;
 
+// let isDraggable = false;
+
 export default function Main() {
+  const gridLayoutRef = useRef();
   const [layout, setLayout] = useState(dLayout);
+  const [isDraggable, setIsDraggable] = useState(false)  
 
   function Add() {
     // 추가 하면서 기존의 거를 사이즈도 바꾸어줘야 되겠구나 ....
     numOfCanvas++;
-    setLayout([...layout, { i: `${numOfCanvas}`, x: 8, y: 4, w: 4, h: 4 }]);
+    setLayout([...layout, { i: `${numOfCanvas}`, x: 0, y: 0, w: 4, h: 4,  }]);
     console.log(layout);
   }
 
@@ -57,13 +61,20 @@ export default function Main() {
     setLayout(_.reject(layout, { i: i }));
   }
 
+  function onDragChange(e){
+    //console.log(e.target)
+    // isDraggable = !isDraggable;
+    // console.log(isDraggable);
+    // console.log(gridLayoutRef.current);
+    // gridLayoutRef.current.props.isDraggable = isDraggable;
+    setIsDraggable(!isDraggable)
+  }
+
   useEffect(() => {
     init();
-    
-    
+
     cameraControls = new CameraControls(camera, canvasRefArray.current[0]);
     animate();
-
   }, []);
   useEffect(() => {
     console.log(canvasRefArray.current);
@@ -77,23 +88,32 @@ export default function Main() {
   return (
     <div style={{}}>
       <button onClick={Add}>Add</button>
+
+      <input onChange={e => onDragChange(e)} type="checkbox" ></input>
+      <label for="isDraggable">isDraggable</label>
       <ResponsiveGridLayout
+
         className="layout"
         // layout={layout}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
         // width={1200}
         style={{ height: "500" }}
-        // isDraggable={false}
+        isDraggable={isDraggable}
         // rowHeight={30}
         // maxRows={4}
         // autoSize={false}
         // maxRows={2}
         onResizeStop={onResize}
+        ref={gridLayoutRef}
       >
         {layout.map((v, i) => {
           return (
-            <div key={v.i} data-grid={v}>
+            <div
+              key={v.i}
+              data-grid={v}
+              
+            >
               <AutoSizer>
                 {({ height, width }) => {
                   if (renderer) {
@@ -104,6 +124,7 @@ export default function Main() {
                     <canvas
                       width={width}
                       height={height}
+                     
                       ref={(ref) => (canvasRefArray.current[i] = ref)}
                     ></canvas>
                   );
@@ -116,6 +137,7 @@ export default function Main() {
               >
                 x
               </span>
+             
               {v.i}
             </div>
           );
