@@ -16,7 +16,7 @@ const clock = new THREE.Clock();
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 const dLayout = [
-  { i: "1", x: 0, y: 0, w: 4, h: 4 },
+  { i: "0", x: 0, y: 0, w: 4, h: 4 },
   // { i: 2, x: 4, y: 0, w: 4, h: 4 },
   // { i: 3, x: 0, y: 4, w: 4, h: 4 },
   // { i: 4, x: 4, y: 4, w: 4, h: 4 },
@@ -36,7 +36,13 @@ canvasRefArray.current = [];
 let canvasSizeArray = React.createRef();
 canvasSizeArray.current = [];
 
-let numOfCanvas = 1;
+let cameraArray = React.createRef();
+cameraArray.current = [];
+
+let controlArray = React.createRef();
+controlArray.current = [];
+
+let numOfCanvas = 0;
 let scene, camera, renderer, model, light, hemiLight, cameraControls;
 
 // let isDraggable = false;
@@ -44,14 +50,16 @@ let scene, camera, renderer, model, light, hemiLight, cameraControls;
 export default function Main() {
   const gridLayoutRef = useRef();
   const [layout, setLayout] = useState(dLayout);
-  const [isDraggable, setIsDraggable] = useState(false)  
+  const [isDraggable, setIsDraggable] = useState(false);
 
   function Add() {
     // 추가 하면서 기존의 거를 사이즈도 바꾸어줘야 되겠구나 ....
     numOfCanvas++;
-    setLayout([...layout, { i: `${numOfCanvas}`, x: 0, y: 0, w: 4, h: 4,  }]);
+    setLayout([...layout, { i: `${numOfCanvas}`, x: 0, y: 0, w: 4, h: 4 }]);
     console.log(layout);
   }
+
+  function ControlMaker() {}
 
   function Remove(i) {
     console.log("removef");
@@ -61,38 +69,54 @@ export default function Main() {
     setLayout(_.reject(layout, { i: i }));
   }
 
-  function onDragChange(e){
+  function onDragChange(e) {
     //console.log(e.target)
     // isDraggable = !isDraggable;
     // console.log(isDraggable);
     // console.log(gridLayoutRef.current);
     // gridLayoutRef.current.props.isDraggable = isDraggable;
-    setIsDraggable(!isDraggable)
+    setIsDraggable(!isDraggable);
   }
 
   useEffect(() => {
     init();
 
-    cameraControls = new CameraControls(camera, canvasRefArray.current[0]);
+    controlArray.current[0] = new CameraControls(
+      camera,
+      canvasRefArray.current[0]
+    );
     animate();
   }, []);
+
   useEffect(() => {
     console.log(canvasRefArray.current);
-  }, [layout]);
+    if(numOfCanvas>0){
 
-  function onResize(cb) {
-    //auto sizer 넣어야겠네 ㅋㅋ
-    console.log(cb);
-  }
+      // 여기서 넣어주어함 컨트롤러 작업 ....  ...
+      // _ lodash filter 등을 사용해서 ? 새로운 것만 ?
+      let tmpCam = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        1,
+        5000
+      );
+      tmpCam.position.set(0, 25, 125);
+      cameraArray.current[numOfCanvas] = tmpCam;
+      
+      controlArray.current[numOfCanvas] = new CameraControls(
+        tmpCam,
+        canvasRefArray.current[numOfCanvas]
+      );
+    }
+  }, [layout]);
 
   return (
     <div style={{}}>
       <button onClick={Add}>Add</button>
 
-      <input onChange={e => onDragChange(e)} type="checkbox" ></input>
+      <input onChange={(e) => onDragChange(e)} type="checkbox"></input>
       <label for="isDraggable">isDraggable</label>
       <ResponsiveGridLayout
-
         className="layout"
         // layout={layout}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
@@ -104,16 +128,12 @@ export default function Main() {
         // maxRows={4}
         // autoSize={false}
         // maxRows={2}
-        onResizeStop={onResize}
+
         ref={gridLayoutRef}
       >
         {layout.map((v, i) => {
           return (
-            <div
-              key={v.i}
-              data-grid={v}
-              
-            >
+            <div key={v.i} data-grid={v}>
               <AutoSizer>
                 {({ height, width }) => {
                   if (renderer) {
@@ -124,7 +144,6 @@ export default function Main() {
                     <canvas
                       width={width}
                       height={height}
-                     
                       ref={(ref) => (canvasRefArray.current[i] = ref)}
                     ></canvas>
                   );
@@ -137,7 +156,7 @@ export default function Main() {
               >
                 x
               </span>
-             
+
               {v.i}
             </div>
           );
@@ -160,6 +179,8 @@ function init() {
     5000
   );
   camera.position.set(0, 25, 125);
+
+  cameraArray.current[0] = camera
 
   // 이건 add 나 , init 시에 있어야겠다 ...
   // cameraControls = new CameraControls(camera, renderer.domElement);
@@ -220,7 +241,7 @@ function animate() {
   // snip
   const delta = clock.getDelta();
   //const hasControlsUpdated = cameraControls.update( delta );
-  cameraControls.update(delta);
+  //cameraControls.update(delta);
 
   canvasRefArray.current.map((v, i) => {
     //v.get
@@ -228,17 +249,18 @@ function animate() {
     // 이게 애니메이트에서 돌아가야할듯 ...
     // renderer .set size
     //console.log(v);
-    if (v && canvasSizeArray.current[i]) {
+    if (v && canvasSizeArray.current[i] &&cameraArray.current[i] ) {
+      const hasControlsUpdated = controlArray.current[i].update(delta);
       //console.log(canvasSizeArray.current[i])
-      camera.aspect =
-        canvasSizeArray.current[i].width / canvasSizeArray.current[i].height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(
-        canvasSizeArray.current[i].width,
-        canvasSizeArray.current[i].height
-      );
-      renderer.render(scene, camera);
-      v.getContext("2d").drawImage(renderer.domElement, 0, 0);
+      if(hasControlsUpdated){
+
+        let tmpSize = canvasSizeArray.current[i];
+        cameraArray.current[i].aspect = tmpSize.width / tmpSize.height;
+        cameraArray.current[i].updateProjectionMatrix();
+        renderer.setSize(tmpSize.width, tmpSize.height);
+        renderer.render(scene, cameraArray.current[i]);
+        v.getContext("2d").drawImage(renderer.domElement, 0, 0);
+      }
     }
     return null;
   });
