@@ -97,6 +97,8 @@ export default function Main() {
         tmpCam,
         theGraphicStore.current[currentId].canvasRef
       );
+
+     
     } else if (typeOfUpdate === "Remove") {
       isPaused = false;
     }
@@ -225,14 +227,18 @@ function animate() {
         let theGraphic = theGraphicStore.current[v];
 
         if (theGraphic.control) {
-          theGraphic.control.update(delta);
-          theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
-          theGraphic.camera.updateProjectionMatrix();
-          renderer.setSize(theGraphic.width, theGraphic.height);
-          renderer.render(scene, theGraphic.camera);
-          theGraphic.canvasRef
-            .getContext("2d")
-            .drawImage(renderer.domElement, 0, 0);
+
+          const hasUpdated = theGraphic.control.update(delta);
+          if(hasUpdated){
+
+            theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+            theGraphic.camera.updateProjectionMatrix();
+            renderer.setSize(theGraphic.width, theGraphic.height);
+            renderer.render(scene, theGraphic.camera);
+            theGraphic.canvasRef
+              .getContext("2d")
+              .drawImage(renderer.domElement, 0, 0);
+          }
         }
       });
     }
