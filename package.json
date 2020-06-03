@@ -15,7 +15,8 @@
     "react-three-fiber": "^4.2.7",
     "react-virtualized": "^9.21.2",
     "three": "^0.116.1",
-    "three.js": "^0.77.1"
+    "three.js": "^0.77.1",
+    "uuid": "^8.1.0"
   },
   "scripts": {
     "start": "react-scripts start",
