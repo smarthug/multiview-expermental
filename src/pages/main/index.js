@@ -78,6 +78,19 @@ export default function Main() {
   useEffect(() => {
     // init();
     isPaused = false;
+
+
+    setTimeout(() => {
+      let theGraphic = theGraphicStore.current[currentId];
+
+      theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+      theGraphic.camera.updateProjectionMatrix();
+      renderer.setSize(theGraphic.width, theGraphic.height);
+      renderer.render(scene, theGraphic.camera);
+      theGraphic.canvasRef
+        .getContext("2d")
+        .drawImage(renderer.domElement, 0, 0);
+    }, 10);
   }, []);
 
   useEffect(() => {
@@ -98,7 +111,17 @@ export default function Main() {
         theGraphicStore.current[currentId].canvasRef
       );
 
-     
+      setTimeout(() => {
+        let theGraphic = theGraphicStore.current[currentId];
+
+        theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+        theGraphic.camera.updateProjectionMatrix();
+        renderer.setSize(theGraphic.width, theGraphic.height);
+        renderer.render(scene, theGraphic.camera);
+        theGraphic.canvasRef
+          .getContext("2d")
+          .drawImage(renderer.domElement, 0, 0);
+      }, 10);
     } else if (typeOfUpdate === "Remove") {
       isPaused = false;
     }
@@ -218,7 +241,7 @@ function animate() {
     let currentLast = uuidArr.current.length - 1;
     if (
       theGraphicStore.current[uuidArr.current[currentLast]] &&
-      theGraphicStore.current[uuidArr.current[currentLast]].width 
+      theGraphicStore.current[uuidArr.current[currentLast]].width
       // theGraphicStore.current[uuidArr.current[currentLast]].canvasRef
       // theGraphicStore.current[uuidArr.current[currentLast]].control
     ) {
@@ -227,10 +250,8 @@ function animate() {
         let theGraphic = theGraphicStore.current[v];
 
         if (theGraphic.control) {
-
           const hasUpdated = theGraphic.control.update(delta);
-          if(hasUpdated){
-
+          if (hasUpdated) {
             theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
             theGraphic.camera.updateProjectionMatrix();
             renderer.setSize(theGraphic.width, theGraphic.height);
