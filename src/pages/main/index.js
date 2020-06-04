@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -7,16 +7,22 @@ import _ from "lodash";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { AutoSizer } from "react-virtualized";
-
+import { v4 as uuid } from "uuid";
 import CameraControls from "camera-controls";
+
 CameraControls.install({ THREE: THREE });
+
+let typeOfUpdate = "Add";
+let isPaused = false;
 
 const clock = new THREE.Clock();
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
+let currentId = uuid().replace(/-/g, "");
+
 const dLayout = [
-  { i: "0", x: 0, y: 0, w: 4, h: 4 },
+  { i: currentId, x: 0, y: 0, w: 4, h: 4 },
   // { i: 2, x: 4, y: 0, w: 4, h: 4 },
   // { i: 3, x: 0, y: 4, w: 4, h: 4 },
   // { i: 4, x: 4, y: 4, w: 4, h: 4 },
@@ -29,131 +35,144 @@ const removeStyle = {
   cursor: "pointer",
 };
 
-// 결국 종합적인 모든걸 관리하는 객체 array ...
-//let test =  {[numOfCanvas]:{canvasRef: 3 ,canvasSize: {width: 3, height: 43}, camera:4, control:43}}
-let theGraphicArray = React.createRef();
-theGraphicArray.current = [];
+const theGraphicStore = React.createRef();
+theGraphicStore.current = {};
 
-let canvasRefArray = React.createRef();
-canvasRefArray.current = [];
+let uuidArr = React.createRef();
+uuidArr.current = [currentId];
 
-let canvasSizeArray = React.createRef();
-canvasSizeArray.current = [];
-
-let cameraArray = React.createRef();
-cameraArray.current = [];
-
-let controlArray = React.createRef();
-controlArray.current = [];
-
-let numOfCanvas = 0;
 let scene, renderer, model, light, hemiLight;
 
-// let isDraggable = false;
+init();
 
 export default function Main() {
-  const gridLayoutRef = useRef();
   const [layout, setLayout] = useState(dLayout);
   const [isDraggable, setIsDraggable] = useState(false);
 
   function Add() {
+    typeOfUpdate = "Add";
     // 추가 하면서 기존의 거를 사이즈도 바꾸어줘야 되겠구나 ....
-    numOfCanvas++;
-    setLayout([...layout, { i: `${numOfCanvas}`, x: 0, y: 0, w: 4, h: 4 }]);
-    console.log(layout);
+    //const id = uuid().replace(/-/g, "");
+    currentId = uuid().replace(/-/g, "");
+    uuidArr.current.push(currentId);
+    setLayout([...layout, { i: currentId, x: 0, y: 0, w: 4, h: 4 }]);
   }
 
-  // function ControlMaker() {}
-
   function Remove(i) {
+    isPaused = true;
+    typeOfUpdate = "Remove";
+
     console.log("removef");
     console.log(i);
-    //console.log(el.target.value)
-    numOfCanvas--;
-    // 하나로 묶자...
-    // 이제 i 라는 아이디를 지우는 방식으로 ... 
-    canvasRefArray.current.splice(i);
-    canvasSizeArray.current.splice(i);
-    cameraArray.current.splice(i);
-    controlArray.current.splice(i);
+
+    delete theGraphicStore.current[i];
+
+    _.remove(uuidArr.current, (uuid) => uuid === i);
     setLayout(_.reject(layout, { i: i }));
+  }
+
+  function Resizer(height = 100, width = 100, uuid = currentId) {
+    theGraphicStore.current[uuid] = {
+      ...theGraphicStore.current[uuid],
+      width: width,
+      height: height,
+    };
+
+    // isPaused = false
+
+    return (
+      <canvas
+        width={width}
+        height={height}
+        ref={(ref) =>
+          (theGraphicStore.current[uuid] = {
+            ...theGraphicStore.current[uuid],
+            canvasRef: ref,
+          })
+        }
+      ></canvas>
+    );
   }
 
   function onDragChange(e) {
     setIsDraggable(!isDraggable);
+    // isPaused = !isPaused;
   }
 
   useEffect(() => {
-    init();
+    // init();
+    isPaused = false;
 
-    animate();
+    // setTimeout(() => {
+    //   let theGraphic = theGraphicStore.current[currentId];
+
+    //   theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+    //   theGraphic.camera.updateProjectionMatrix();
+    //   renderer.setSize(theGraphic.width, theGraphic.height);
+    //   renderer.render(scene, theGraphic.camera);
+    //   theGraphic.canvasRef
+    //     .getContext("2d")
+    //     .drawImage(renderer.domElement, 0, 0);
+    // }, 10);
   }, []);
 
   useEffect(() => {
-    let tmpCam = new THREE.PerspectiveCamera(
-      60,
-      window.innerWidth / window.innerHeight,
-      1,
-      5000
-    );
-    tmpCam.position.set(0, 25, 125);
-    // numOfCanvas 쓰는게 문제일려나 ....
-    cameraArray.current[numOfCanvas] = tmpCam;
+    // remove 할때도 여기를 거치니 문제인듯 ...
+    if (typeOfUpdate === "Add") {
+      let tmpCam = new THREE.PerspectiveCamera(
+        60,
+        window.innerWidth / window.innerHeight,
+        1,
+        5000
+      );
+      tmpCam.position.set(0, 25, 125);
 
-    controlArray.current[numOfCanvas] = new CameraControls(
-      tmpCam,
-      canvasRefArray.current[numOfCanvas]
-    );
-    // 문제 구나 .....
-    // cameraArray.current.push(tmpCam);
+      theGraphicStore.current[currentId].camera = tmpCam;
 
-    // controlArray.current[numOfCanvas] = new CameraControls(
-    //   tmpCam,
-    //   canvasRefArray.current[numOfCanvas]
-    // );
-    // 배열이 아니라 오브젝트로 가야되나 ????
-    // 오브젝트로 가자 ....
-    // 순서는 중요치 않다 , 페어로 묶여만 있다면 .. 
+      theGraphicStore.current[currentId].control = new CameraControls(
+        tmpCam,
+        theGraphicStore.current[currentId].canvasRef
+      );
+
+      // setTimeout(() => {
+      //   let theGraphic = theGraphicStore.current[currentId];
+
+      //   theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+      //   theGraphic.camera.updateProjectionMatrix();
+      //   renderer.setSize(theGraphic.width, theGraphic.height);
+      //   renderer.render(scene, theGraphic.camera);
+      //   theGraphic.canvasRef
+      //     .getContext("2d")
+      //     .drawImage(renderer.domElement, 0, 0);
+      // }, 10);
+    } else if (typeOfUpdate === "Remove") {
+      isPaused = false;
+    }
+
+    animate();
   }, [layout]);
 
   return (
-    <div style={{}}>
+    <div>
       <button onClick={Add}>Add</button>
 
       <input onChange={(e) => onDragChange(e)} type="checkbox"></input>
       <label for="isDraggable">isDraggable</label>
       <ResponsiveGridLayout
         className="layout"
-        // layout={layout}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-        // width={1200}
         style={{ height: "500" }}
         isDraggable={isDraggable}
-        // rowHeight={30}
-        // maxRows={4}
-        // autoSize={false}
-        // maxRows={2}
-
-        ref={gridLayoutRef}
       >
         {layout.map((v, i) => {
           return (
             <div key={v.i} data-grid={v}>
               <AutoSizer>
-                {({ height, width }) => {
-                  if (renderer) {
-                    //renderer.setSize(width, height);
-                    canvasSizeArray.current[i] = { width, height };
-                  }
-                  return (
-                    <canvas
-                      width={width}
-                      height={height}
-                      ref={(ref) => (canvasRefArray.current[i] = ref)}
-                    ></canvas>
-                  );
-                }}
+                {/* {({ height, width }) => {return (
+                    Resizer(width, height, v.i)
+                  ) }} */}
+                {({ height, width }) => Resizer(height, width, v.i)}
               </AutoSizer>
               <span
                 className="remove"
@@ -179,8 +198,6 @@ function init() {
   renderer = new THREE.WebGLRenderer();
   renderer.toneMapping = THREE.ReinhardToneMapping;
   renderer.toneMappingExposure = 2.3;
-  // renderer.setSize(window.innerWidth, window.innerHeight);
-  // renderer.setSize(400, 400);
   renderer.shadowMap.enabled = true;
 
   let geometry = new THREE.BoxGeometry();
@@ -217,38 +234,33 @@ function init() {
   });
 }
 
-
-
-// 핵심 ... 
+// 핵심 ...
 function animate() {
-  requestAnimationFrame(animate);
-
   // snip
   const delta = clock.getDelta();
 
-  canvasRefArray.current.map((v, i) => {
-    if (v && canvasSizeArray.current[i] && cameraArray.current[i]) {
-      // 최적화기법
-      // const hasControlsUpdated = controlArray.current[i].update(delta);
+  if (isPaused) {
+  } else {
+    // let currentLast = uuidArr.current.length - 1;
 
-      // if (hasControlsUpdated) {
-      //   let tmpSize = canvasSizeArray.current[i];
-      //   cameraArray.current[i].aspect = tmpSize.width / tmpSize.height;
-      //   cameraArray.current[i].updateProjectionMatrix();
-      //   renderer.setSize(tmpSize.width, tmpSize.height);
-      //   renderer.render(scene, cameraArray.current[i]);
-      //   v.getContext("2d").drawImage(renderer.domElement, 0, 0);
-      // }
+    // eslint-disable-next-line array-callback-return
+    Object.keys(theGraphicStore.current).map((v, i) => {
+      let theGraphic = theGraphicStore.current[v];
 
-      controlArray.current[i].update(delta);
+      if (theGraphic.control) {
+        const hasUpdated = theGraphic.control.update(delta);
+        if (hasUpdated) {
+          theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+          theGraphic.camera.updateProjectionMatrix();
+          renderer.setSize(theGraphic.width, theGraphic.height);
+          renderer.render(scene, theGraphic.camera);
+          theGraphic.canvasRef
+            .getContext("2d")
+            .drawImage(renderer.domElement, 0, 0);
+        }
+      }
+    });
+  }
 
-      let tmpSize = canvasSizeArray.current[i];
-      cameraArray.current[i].aspect = tmpSize.width / tmpSize.height;
-      cameraArray.current[i].updateProjectionMatrix();
-      renderer.setSize(tmpSize.width, tmpSize.height);
-      renderer.render(scene, cameraArray.current[i]);
-      v.getContext("2d").drawImage(renderer.domElement, 0, 0);
-    }
-    return null;
-  });
+  requestAnimationFrame(animate);
 }
