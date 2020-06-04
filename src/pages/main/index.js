@@ -71,26 +71,49 @@ export default function Main() {
     setLayout(_.reject(layout, { i: i }));
   }
 
+  function Resizer(height = 100, width = 100, uuid = currentId) {
+    theGraphicStore.current[uuid] = {
+      ...theGraphicStore.current[uuid],
+      width: width,
+      height: height,
+    };
+
+    // isPaused = false
+
+    return (
+      <canvas
+        width={width}
+        height={height}
+        ref={(ref) =>
+          (theGraphicStore.current[uuid] = {
+            ...theGraphicStore.current[uuid],
+            canvasRef: ref,
+          })
+        }
+      ></canvas>
+    );
+  }
+
   function onDragChange(e) {
     setIsDraggable(!isDraggable);
+    // isPaused = !isPaused;
   }
 
   useEffect(() => {
     // init();
     isPaused = false;
 
+    // setTimeout(() => {
+    //   let theGraphic = theGraphicStore.current[currentId];
 
-    setTimeout(() => {
-      let theGraphic = theGraphicStore.current[currentId];
-
-      theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
-      theGraphic.camera.updateProjectionMatrix();
-      renderer.setSize(theGraphic.width, theGraphic.height);
-      renderer.render(scene, theGraphic.camera);
-      theGraphic.canvasRef
-        .getContext("2d")
-        .drawImage(renderer.domElement, 0, 0);
-    }, 10);
+    //   theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+    //   theGraphic.camera.updateProjectionMatrix();
+    //   renderer.setSize(theGraphic.width, theGraphic.height);
+    //   renderer.render(scene, theGraphic.camera);
+    //   theGraphic.canvasRef
+    //     .getContext("2d")
+    //     .drawImage(renderer.domElement, 0, 0);
+    // }, 10);
   }, []);
 
   useEffect(() => {
@@ -111,24 +134,22 @@ export default function Main() {
         theGraphicStore.current[currentId].canvasRef
       );
 
-      setTimeout(() => {
-        let theGraphic = theGraphicStore.current[currentId];
+      // setTimeout(() => {
+      //   let theGraphic = theGraphicStore.current[currentId];
 
-        theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
-        theGraphic.camera.updateProjectionMatrix();
-        renderer.setSize(theGraphic.width, theGraphic.height);
-        renderer.render(scene, theGraphic.camera);
-        theGraphic.canvasRef
-          .getContext("2d")
-          .drawImage(renderer.domElement, 0, 0);
-      }, 10);
+      //   theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+      //   theGraphic.camera.updateProjectionMatrix();
+      //   renderer.setSize(theGraphic.width, theGraphic.height);
+      //   renderer.render(scene, theGraphic.camera);
+      //   theGraphic.canvasRef
+      //     .getContext("2d")
+      //     .drawImage(renderer.domElement, 0, 0);
+      // }, 10);
     } else if (typeOfUpdate === "Remove") {
       isPaused = false;
     }
 
     animate();
-
-    isPaused = false;
   }, [layout]);
 
   return (
@@ -148,28 +169,10 @@ export default function Main() {
           return (
             <div key={v.i} data-grid={v}>
               <AutoSizer>
-                {({ height, width }) => {
-                  theGraphicStore.current[v.i] = {
-                    ...theGraphicStore.current[v.i],
-                    width: width,
-                    height: height,
-                  };
-
-                  // isPaused = false
-
-                  return (
-                    <canvas
-                      width={width}
-                      height={height}
-                      ref={(ref) =>
-                        (theGraphicStore.current[v.i] = {
-                          ...theGraphicStore.current[v.i],
-                          canvasRef: ref,
-                        })
-                      }
-                    ></canvas>
-                  );
-                }}
+                {/* {({ height, width }) => {return (
+                    Resizer(width, height, v.i)
+                  ) }} */}
+                {({ height, width }) => Resizer(height, width, v.i)}
               </AutoSizer>
               <span
                 className="remove"
@@ -238,31 +241,25 @@ function animate() {
 
   if (isPaused) {
   } else {
-    let currentLast = uuidArr.current.length - 1;
-    if (
-      theGraphicStore.current[uuidArr.current[currentLast]] &&
-      theGraphicStore.current[uuidArr.current[currentLast]].width
-      // theGraphicStore.current[uuidArr.current[currentLast]].canvasRef
-      // theGraphicStore.current[uuidArr.current[currentLast]].control
-    ) {
-      // eslint-disable-next-line array-callback-return
-      Object.keys(theGraphicStore.current).map((v, i) => {
-        let theGraphic = theGraphicStore.current[v];
+    // let currentLast = uuidArr.current.length - 1;
 
-        if (theGraphic.control) {
-          const hasUpdated = theGraphic.control.update(delta);
-          if (hasUpdated) {
-            theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
-            theGraphic.camera.updateProjectionMatrix();
-            renderer.setSize(theGraphic.width, theGraphic.height);
-            renderer.render(scene, theGraphic.camera);
-            theGraphic.canvasRef
-              .getContext("2d")
-              .drawImage(renderer.domElement, 0, 0);
-          }
+    // eslint-disable-next-line array-callback-return
+    Object.keys(theGraphicStore.current).map((v, i) => {
+      let theGraphic = theGraphicStore.current[v];
+
+      if (theGraphic.control) {
+        const hasUpdated = theGraphic.control.update(delta);
+        if (hasUpdated) {
+          theGraphic.camera.aspect = theGraphic.width / theGraphic.height;
+          theGraphic.camera.updateProjectionMatrix();
+          renderer.setSize(theGraphic.width, theGraphic.height);
+          renderer.render(scene, theGraphic.camera);
+          theGraphic.canvasRef
+            .getContext("2d")
+            .drawImage(renderer.domElement, 0, 0);
         }
-      });
-    }
+      }
+    });
   }
 
   requestAnimationFrame(animate);
